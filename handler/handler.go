@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/newrelic/go-agent"
 	"gopkg.in/redis.v3"
 	"io"
 	"log"
@@ -14,6 +15,7 @@ type RedirectHandler struct {
 	Client *redis.Client
 	Logger *log.Logger
 	Extra  Extra
+	NewRelic  newrelic.Application
 }
 
 type Extra struct {
@@ -40,6 +42,10 @@ func getExtra(h *Extra) Extra{
 
 func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	logEntry := time.Now().UTC().String()
+	if h.NewRelic != nil {
+		txn := h.NewRelic.StartTransaction(req.RequestURI, w, req)
+		defer txn.End()
+	}
 
 	if req.RequestURI == "/healthcheck" {
 		err := h.Client.Ping().Err()
