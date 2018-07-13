@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/newrelic/go-agent"
 	"errors"
 	"gopkg.in/redis.v3"
 	"gopkg.in/yaml.v2"
@@ -23,6 +24,7 @@ type Config struct {
 	Logger      *log.Logger
 	Port        string
 	RedisClient *redis.Client
+	NewRelic newrelic.Config
 }
 
 func try(env string, value string, def string) string {
@@ -79,6 +81,10 @@ func fetchSettings() (*readSettings, error) {
 	return &s, nil
 }
 
+func getNewRelicOptions() (string, string) {
+	return os.Getenv("NEW_RELIC_APP_NAME"), os.Getenv("NEW_RELIC_LICENSE_KEY")
+}
+
 func NewConfig() (*Config, error) {
 	s, err := fetchSettings()
 
@@ -87,9 +93,11 @@ func NewConfig() (*Config, error) {
 	}
 	redisClient := redis.NewClient(getRedisOptions(s))
 	logger := log.New(getLoggerOutput(s), "", 0)
+	newRelic := newrelic.NewConfig(getNewRelicOptions())
 
 	return &Config{
 		Logger:      logger,
 		Port:        try(os.Getenv("PORT"), s.Port, "1234"),
-		RedisClient: redisClient}, err
+		RedisClient: redisClient,
+		NewRelic: newRelic}, err
 }
